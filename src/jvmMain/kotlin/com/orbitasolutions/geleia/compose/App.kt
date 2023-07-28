@@ -387,7 +387,9 @@ fun WindowScope.app() {
                             Tab(
                                 text = { Text(it.title) },
                                 selected = requestTabItemsSelected == it,
-                                onClick = { requestTabItemsSelected = it })
+                                onClick = {
+                                    requestTabItemsSelected = it
+                                })
                         }
                     }
                 }
@@ -404,8 +406,6 @@ fun WindowScope.app() {
                             )
                         }
 
-                        val dataFocusRequester = FocusRequester()
-
                         OutlinedTextField(
                             value = requestFieldValue,
                             onValueChange = {
@@ -417,14 +417,8 @@ fun WindowScope.app() {
                             modifier = Modifier.fillMaxSize()
                                 .padding(horizontal = 8.dp)
                                 .padding(bottom = 8.dp)
-                                .focusRequester(dataFocusRequester)
 
                         )
-
-                        scope.launch {
-                            delay(100)
-                            dataFocusRequester.requestFocus()
-                        }
                     }
 
                     TabRequestItems.QUERY_PARAMS ->
@@ -494,7 +488,7 @@ fun annotatedStringResponse(response: Response?): AnnotatedString? {
             val data = annotatedString(it.data ?: "", CodeLang.JSON)
 
             status + separator + separator + headers + separator + separator + separator + data
-        }else {
+        } else {
             annotatedString(it.data ?: "", CodeLang.JSON)
         }
     }

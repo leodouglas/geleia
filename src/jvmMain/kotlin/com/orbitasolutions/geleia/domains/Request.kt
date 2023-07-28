@@ -1,6 +1,10 @@
 package com.orbitasolutions.geleia.domains
 
+import org.apache.commons.text.StringEscapeUtils
 import java.net.URL
+import java.net.URLDecoder
+import java.net.URLEncoder
+import java.nio.charset.Charset
 import kotlin.random.Random
 
 data class Request(
@@ -45,7 +49,9 @@ data class Request(
     val url: String
         get() {
             val queryString = queryParams.let { params ->
-                params.entries.filter { it.key.isNotBlank() }.joinToString("&") { "${it.key}=${it.value}" }
+                params.entries.filter { it.key.isNotBlank() }.joinToString("&") {
+                    "${URLEncoder.encode(it.key, Charset.defaultCharset())}=${URLEncoder.encode(it.value, Charset.defaultCharset())}"
+                }
             }
 
             return buildString {
@@ -60,7 +66,9 @@ data class Request(
         private fun setQueryParams(url: String): Map<String, String> {
             return url.split("&").filter(String::isNotBlank).associate {
                 val entry = it.split("=")
-                Pair(entry[0], entry.getOrNull(1) ?: "")
+                val key = URLDecoder.decode(entry[0], Charset.defaultCharset())
+                val value = URLDecoder.decode(entry.getOrNull(1) ?: "", Charset.defaultCharset())
+                Pair(key, value)
             }.filter { it.key.isNotBlank() }
         }
     }

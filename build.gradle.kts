@@ -37,6 +37,7 @@ kotlin {
                 implementation(compose.desktop.macos_x64)
                 implementation(compose.desktop.windows_x64)
                 implementation(compose.material3)
+                implementation("org.apache.commons:commons-text:1.10.0")
                 implementation("com.google.code.gson:gson:2.10.1")
                 implementation("org.jetbrains.compose.material:material-icons-extended-desktop:1.2.2")
             }

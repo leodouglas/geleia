@@ -134,7 +134,7 @@ object RequestService {
 
 
         val contentType = headers["Content-Type"]?.split(";")?.first()?.trim()
-        val data = dataMatch?.groupValues?.getOrNull(2)?.toPretty(contentType)
+        val data = dataMatch?.groupValues?.getOrNull(2)?.let { it.ifEmpty { null } }?.toPretty(contentType)
         val method = methodMatch?.groupValues?.getOrNull(2) ?: if (data != null) "POST" else "GET"
 
         val request = Request(
