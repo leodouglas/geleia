@@ -46,21 +46,20 @@ object Util {
      * Treat a variable as an integer in JavaScript style. Note this function can
      * only handle integer and boolean currently.
      *
-     * @param var the variable to get value from
+     * @param `var` the variable to get value from
      * @return the integer value
      * @throws IllegalArgumentException the data type of `var` is neither
      * integer nor boolean.
      */
-    fun getVariableValueAsInteger(`var`: Any?): Int {
-        if (`var` == null) {
+    fun getVariableValueAsInteger(value: Any?): Int {
+        if (value == null) {
             throw NullPointerException("argument 'var' cannot be null")
         }
-        var returnResult: Int? = -1
-        returnResult = if (`var` is Int) {
-            `var`
-        } else if (`var` is Boolean) {
+        val returnResult = if (value is Int) {
+            value
+        } else if (value is Boolean) {
             // Javascript treat true as 1
-            if (`var`) 1 else 0
+            if (value) 1 else 0
         } else {
             throw IllegalArgumentException("'var' is neither integer nor boolean")
         }

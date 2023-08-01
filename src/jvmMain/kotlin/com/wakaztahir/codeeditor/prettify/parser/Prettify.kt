@@ -779,7 +779,7 @@ class Prettify {
                         embeddedSourceEnd = token.length - match[2].length
                         embeddedSourceStart = embeddedSourceEnd - embeddedSource.length
                     }
-                    val lang = style!!.substring(5)
+                    val lang = style.substring(5)
                     // Decorate the left of the embedded source
                     appendDecorations(
                         basePos + tokenStart,

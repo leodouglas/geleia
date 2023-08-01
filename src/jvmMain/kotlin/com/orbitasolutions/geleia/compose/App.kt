@@ -395,7 +395,7 @@ fun WindowScope.app() {
                 }
                 when (requestTabItemsSelected) {
                     TabRequestItems.HEADERS ->
-                        KeyValueTable(LinkedHashMap(request.headers)) {
+                        KeyValueTable(LinkedHashMap(request.headers), allowDisable = true) {
                             onChangeRequest(request.copy(headers = it))
                         }
 
@@ -467,7 +467,7 @@ fun WindowScope.app() {
 
 fun justTry(function: () -> Unit) {
     try {
-
+        function()
     } catch (_: Exception) {
 
     }
