@@ -37,6 +37,7 @@ import com.wakaztahir.codeeditor.utils.parseCodeAsAnnotatedString
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.awt.Taskbar
+import java.util.*
 import kotlin.concurrent.thread
 
 @Preview
@@ -73,17 +74,19 @@ fun WindowScope.app() {
     var editingName by remember { mutableStateOf(false) }
     var showImportDialog by remember { mutableStateOf(false) }
 
-    fun loadRequest(index: Int) {
+    fun loadRequest(index: Int, show: Boolean = true) {
         val nextRequest = requests[index]
         requestIndex = index
         url = nextRequest.url
         originalName = nextRequest.name
-        requestTabItemsSelected = defaultTabRequest(nextRequest)
-        responseVisible = false
         editingName = false
         requesting = false
-        response = null
-        urlFocusRequest.requestFocus()
+        if (show) {
+            response = null
+            responseVisible = false
+            requestTabItemsSelected = defaultTabRequest(nextRequest)
+            urlFocusRequest.requestFocus()
+        }
     }
 
     fun newRequest(newRequest: Request? = null) {
@@ -207,7 +210,7 @@ fun WindowScope.app() {
                                             save = true
                                         )
                                         RequestService.saveFileRequests(vars, requests)
-                                        loadRequest(requestIndex)
+                                        loadRequest(requestIndex, false)
                                     }
                                 }) {
                                 Icon(
@@ -395,7 +398,7 @@ fun WindowScope.app() {
                 }
                 when (requestTabItemsSelected) {
                     TabRequestItems.HEADERS ->
-                        KeyValueTable(LinkedHashMap(request.headers), allowDisable = true) {
+                        KeyValueTable(LinkedList(request.headers), allowDisable = true) {
                             onChangeRequest(request.copy(headers = it))
                         }
 
@@ -422,7 +425,7 @@ fun WindowScope.app() {
                     }
 
                     TabRequestItems.QUERY_PARAMS ->
-                        KeyValueTable(LinkedHashMap(request.queryParams)) {
+                        KeyValueTable(LinkedList(request.queryParams)) {
                             val newRequest = request.copy(queryParams = it)
                             url = newRequest.url
                             onChangeRequest(newRequest)

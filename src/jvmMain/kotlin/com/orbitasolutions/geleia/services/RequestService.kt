@@ -3,6 +3,9 @@ package com.orbitasolutions.geleia.services
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonParser
 import com.orbitasolutions.geleia.domains.*
+import com.orbitasolutions.geleia.extensions.findOrNull
+import com.orbitasolutions.geleia.extensions.print
+import com.orbitasolutions.geleia.utils.KeyStringValue
 import java.io.File
 import java.io.IOException
 import java.net.URI
@@ -18,6 +21,8 @@ import kotlin.io.path.name
 
 
 object RequestService {
+
+    private const val DISABLED_PARAM = "(disabled)"
 
     private fun loadFileCommands(command: String): MutableList<String> {
         val commands = mutableListOf<String>()
@@ -121,19 +126,20 @@ object RequestService {
         val suggestedName = "${path.name} - ${URL(url).path?.split("/")?.lastOrNull() ?: "untitled"}"
         val name = nameMatch?.groupValues?.getOrNull(1)?.trim() ?: suggestedName
 
-        val headers = mutableMapOf<String, String>()
+        val headers = arrayListOf<KeyStringValue>()
         headerRegex.findAll(curlCommand).forEach { matchResult ->
             val header = matchResult.groupValues[2]
             val headerParts = header.split(":")
             if (headerParts.size == 2) {
                 val key = headerParts[0].trim()
                 val value = headerParts[1].trim()
-                headers[key] = value
+                val disabled = key.contains(DISABLED_PARAM)
+                headers.add(KeyStringValue(key.removeSuffix(DISABLED_PARAM), value, disabled))
             }
         }
 
 
-        val contentType = headers["Content-Type"]?.split(";")?.first()?.trim()
+        val contentType = headers.findOrNull("Content-Type")?.split(";")?.first()?.trim()
         val data = dataMatch?.groupValues?.getOrNull(2)?.let { it.ifEmpty { null } }?.toPretty(contentType)
         val method = methodMatch?.groupValues?.getOrNull(2) ?: if (data != null) "POST" else "GET"
 
@@ -174,25 +180,28 @@ object RequestService {
         forceHTTP1: Boolean = false
     ): Response {
         try {
-            val clientRequest = HttpRequest.newBuilder()
+            val client = HttpRequest.newBuilder()
             if (forceHTTP1) {
-                clientRequest.version(HttpClient.Version.HTTP_1_1)
+                client.version(HttpClient.Version.HTTP_1_1)
             }
 
-            clientRequest.uri(URI.create(applyVars(request.url, vars)))
-            clientRequest.method(request.method.value, BodyPublishers.ofString(applyVars(request.data ?: "", vars)))
+            client.uri(URI.create(applyVars(request.url, vars)))
+            client.method(request.method.value, BodyPublishers.ofString(applyVars(request.data ?: "", vars)))
 
-            request.headers.forEach {
-                if (it.key.isNotBlank()) {
-                    clientRequest.header(applyVars(it.key, vars), applyVars(it.value ?: "", vars))
+            request.headers
+                .filterNot(KeyStringValue::disabled)
+                .forEach {
+                    if (it.key.isNotBlank()) {
+                        client.header(applyVars(it.key, vars), applyVars(it.value, vars))
+                    }
                 }
-            }
-            clientRequest.header("Cache-Control", "no-cache")
-            clientRequest.header("User-Agent", "Geleia/0.1.0:Java/${Runtime.version()}")
-            clientRequest.header("Geleia-RequestId", UUID.randomUUID().toString())
 
-            println("Executing: " + clientRequest.build().toString())
-            val response = HttpClient.newHttpClient().send(clientRequest.build(), HttpResponse.BodyHandlers.ofString())
+            client.header("Cache-Control", "no-cache")
+            client.header("User-Agent", "Geleia/0.1.0:Java/${Runtime.version()}")
+            client.header("Geleia-RequestId", UUID.randomUUID().toString())
+
+            println("Executing: " + client.build().toString())
+            val response = HttpClient.newHttpClient().send(client.build(), HttpResponse.BodyHandlers.ofString())
 
             val contentType = response.headers().map()["Content-Type"]?.first()?.split(";")?.first()?.trim()
             val statusCode = HttpCodes.find(response.statusCode())
@@ -220,7 +229,7 @@ object RequestService {
                 append("curl -X $method ${url.ifEmpty { "http://localhost" }}")
                 headers.onEach {
                     appendLine(" \\")
-                    append("-H \"${it.key}: ${it.value}\"")
+                    append("-H \"${it.key}${it.disabled.print(DISABLED_PARAM)}: ${it.value}\"")
                 }
                 data?.let {
                     appendLine(" \\")
@@ -229,7 +238,6 @@ object RequestService {
                 append(" # $name")
             }
         }
-
     }
 
 }

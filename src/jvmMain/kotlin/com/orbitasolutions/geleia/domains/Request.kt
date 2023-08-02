@@ -1,6 +1,6 @@
 package com.orbitasolutions.geleia.domains
 
-import org.apache.commons.text.StringEscapeUtils
+import com.orbitasolutions.geleia.utils.KeyStringValue
 import java.net.URL
 import java.net.URLDecoder
 import java.net.URLEncoder
@@ -11,13 +11,13 @@ data class Request(
     val id: Int = Random.nextInt(),
     val name: String = "untitled",
     val method: Method = Method.GET,
-    val headers: Map<String, String?> = mutableMapOf(),
+    val headers: List<KeyStringValue> = listOf(),
     val data: String? = null,
     val protocol: String = "http",
     val host: String = "",
     val path: String = "",
     val port: Int = 80,
-    val queryParams: Map<String, String?> = mutableMapOf(),
+    val queryParams: List<KeyStringValue> = listOf(),
     val modified: Boolean = false,
     val command: String? = null
 ) {
@@ -26,7 +26,7 @@ data class Request(
         id: Int = Random.nextInt(),
         name: String = "untitled",
         method: Method = Method.GET,
-        headers: Map<String, String?> = mutableMapOf(),
+        headers: List<KeyStringValue> = listOf(),
         data: String? = null,
         url: String,
         modified: Boolean = false,
@@ -49,7 +49,7 @@ data class Request(
     val url: String
         get() {
             val queryString = queryParams.let { params ->
-                params.entries.filter { it.key.isNotBlank() }.joinToString("&") {
+                params.filter { it.key.isNotBlank() }.joinToString("&") {
                     "${URLEncoder.encode(it.key, Charset.defaultCharset())}=${URLEncoder.encode(it.value, Charset.defaultCharset())}"
                 }
             }
@@ -63,12 +63,12 @@ data class Request(
         }
 
     companion object {
-        private fun setQueryParams(url: String): Map<String, String> {
-            return url.split("&").filter(String::isNotBlank).associate {
+        private fun setQueryParams(url: String): List<KeyStringValue> {
+            return url.split("&").filter(String::isNotBlank).map {
                 val entry = it.split("=")
                 val key = URLDecoder.decode(entry[0], Charset.defaultCharset())
                 val value = URLDecoder.decode(entry.getOrNull(1) ?: "", Charset.defaultCharset())
-                Pair(key, value)
+                KeyStringValue(key, value)
             }.filter { it.key.isNotBlank() }
         }
     }
