@@ -37,11 +37,11 @@ data class Request(
         method = method,
         headers = headers,
         data = data,
-        host = URL(url).host ?: "localhost",
-        port = URL(url).port.takeIf { it != -1 } ?: 80,
-        protocol = URL(url).protocol ?: "http",
-        path = URL(url).path.trim(),
-        queryParams = setQueryParams(URL(url).query ?: ""),
+        host = url.tryUrl()?.host ?: "localhost",
+        port = url.tryUrl()?.port.takeIf { it != -1 } ?: 80,
+        protocol = url.tryUrl()?.protocol ?: "http",
+        path = url.tryUrl()?.path?.trim() ?: "",
+        queryParams = setQueryParams(url.tryUrl()?.query ?: ""),
         modified = modified,
         command = command
     )
@@ -50,7 +50,12 @@ data class Request(
         get() {
             val queryString = queryParams.let { params ->
                 params.filter { it.key.isNotBlank() }.joinToString("&") {
-                    "${URLEncoder.encode(it.key, Charset.defaultCharset())}=${URLEncoder.encode(it.value, Charset.defaultCharset())}"
+                    "${URLEncoder.encode(it.key, Charset.defaultCharset())}=${
+                        URLEncoder.encode(
+                            it.value,
+                            Charset.defaultCharset()
+                        )
+                    }"
                 }
             }
 
@@ -91,5 +96,11 @@ data class Request(
         return id == other.id
     }
 
-
+}
+private fun String.tryUrl(): URL? {
+    return try {
+        URL(this)
+    } catch (ex: Exception) {
+        null
+    }
 }

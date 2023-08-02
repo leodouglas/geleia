@@ -131,10 +131,12 @@ object RequestService {
             val header = matchResult.groupValues[2]
             val headerParts = header.split(":")
             if (headerParts.size == 2) {
-                val key = headerParts[0].trim()
+                val key = headerParts[0].trim().removeSuffix(DISABLED_PARAM)
                 val value = headerParts[1].trim()
-                val disabled = key.contains(DISABLED_PARAM)
-                headers.add(KeyStringValue(key.removeSuffix(DISABLED_PARAM), value, disabled))
+                val disabled = headerParts[0].trim().contains(DISABLED_PARAM)
+                if (key.isNotEmpty()) {
+                    headers.add(KeyStringValue(key, value, disabled))
+                }
             }
         }
 
