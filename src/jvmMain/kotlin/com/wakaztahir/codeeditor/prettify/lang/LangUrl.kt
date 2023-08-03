@@ -27,11 +27,7 @@ class LangUrl : Lang() {
         )
         fallthroughStylePatterns.new(
             Prettify.PR_COMMENT,
-            Regex("(//.*?/)")
-        )
-        fallthroughStylePatterns.new(
-            Prettify.PR_COMMENT,
-            Regex("^(.+:)")
+            Regex("^(.+://.+?/).*")
         )
     }
 
