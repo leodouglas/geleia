@@ -53,7 +53,7 @@ fun WindowScope.app() {
     val request = requests[requestIndex]
     var responseProgress by remember { mutableStateOf("") }
     var response: Response? by remember { mutableStateOf(null) }
-    var url by remember { mutableStateOf(request.url) }
+    var url by remember { mutableStateOf(TextFieldValue(annotatedString = annotatedString(request.url, CodeLang.URL))) }
     var originalName by remember { mutableStateOf(request.name) }
 
     fun onChangeRequest(change: Request, save: Boolean = false) {
@@ -77,7 +77,7 @@ fun WindowScope.app() {
     fun loadRequest(index: Int, show: Boolean = true) {
         val nextRequest = requests[index]
         requestIndex = index
-        url = nextRequest.url
+        url = TextFieldValue(annotatedString = annotatedString(nextRequest.url, CodeLang.URL))
         originalName = nextRequest.name
         editingName = false
         requesting = false
@@ -374,8 +374,8 @@ fun WindowScope.app() {
                             value = url,
                             singleLine = true,
                             onValueChange = {
-                                url = it
-                                onChangeRequest(request.copy(url = url))
+                                url = it.copy(annotatedString = annotatedString(it.text, CodeLang.URL))
+                                onChangeRequest(request.copy(url = it.text))
                             },
                             modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)
                                 .focusRequester(urlFocusRequest)
@@ -427,7 +427,7 @@ fun WindowScope.app() {
                     TabRequestItems.QUERY_PARAMS ->
                         KeyValueTable(LinkedList(request.queryParams)) {
                             val newRequest = request.copy(queryParams = it)
-                            url = newRequest.url
+                            url = url.copy(annotatedString = annotatedString(newRequest.url, CodeLang.URL))
                             onChangeRequest(newRequest)
                         }
                 }

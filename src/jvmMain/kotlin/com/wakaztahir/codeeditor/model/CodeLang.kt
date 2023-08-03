@@ -56,6 +56,7 @@ enum class CodeLang(val langProvider: Prettify.LangProvider?, val value: List<St
     Kotlin({ LangKotlin() }, LangKotlin.fileExtensions),
     JSON({ LangJson() }, LangJson.fileExtensions),
     HEADER({ LangHeader() }, LangHeader.fileExtensions),
+    URL({ LangUrl() }, LangHeader.fileExtensions),
     Lasso({ LangLasso() }, LangLasso.fileExtensions),
     Logtalk({ LangLogtalk() }, LangLogtalk.fileExtensions),
     Swift({ LangSwift() }, LangSwift.fileExtensions),

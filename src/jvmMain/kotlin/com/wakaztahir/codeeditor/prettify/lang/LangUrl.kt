@@ -10,9 +10,9 @@ import com.wakaztahir.codeeditor.utils.new
  *
  * @author leodouglas@gmail.com
  */
-class LangJson : Lang() {
+class LangUrl : Lang() {
     companion object {
-        val fileExtensions = listOf("json")
+        val fileExtensions = listOf("url")
     }
 
     override fun getFileExtensions(): List<String> = fileExtensions
@@ -22,25 +22,16 @@ class LangJson : Lang() {
 
     init {
         fallthroughStylePatterns.new(
-            Prettify.PR_KEYWORD,
-            Regex("^(?:true|false|null)\\b")
-        )
-        fallthroughStylePatterns.new(
-            Prettify.PR_LITERAL,
-            Regex("^(0[xX][0-9a-fA-F_]+L?|0[bB][0-1]+L?|[0-9_.]+([eE]-?[0-9]+)?[fFL]?)")
-        )
-        fallthroughStylePatterns.new(Prettify.PR_STRING, Regex("'.'"))
-        fallthroughStylePatterns.new(
             Prettify.PR_TAG,
-            Regex("\\{\\{.*}}")
+            Regex("(\\{\\{.+}})")
         )
         fallthroughStylePatterns.new(
-            Prettify.PR_TYPE,
-            Regex("(^\".*\") *?:")
+            Prettify.PR_COMMENT,
+            Regex("(//.*?/)")
         )
         fallthroughStylePatterns.new(
-            Prettify.PR_STRING,
-            Regex("^\".*\"")
+            Prettify.PR_COMMENT,
+            Regex("^(.+:)")
         )
     }
 
