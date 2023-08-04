@@ -242,6 +242,12 @@ object RequestService {
         }
     }
 
+    fun restore(request: Request): Request {
+        return if (request.command != null) {
+            convertCurlCommand(request.command)
+        } else request
+    }
+
 }
 
 private fun String.toPretty(format: String? = "application/json"): String {

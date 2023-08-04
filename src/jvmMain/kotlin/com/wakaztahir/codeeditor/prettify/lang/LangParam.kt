@@ -10,7 +10,7 @@ import com.wakaztahir.codeeditor.utils.new
  *
  * @author leodouglas@gmail.com
  */
-class LangUrl : Lang() {
+class LangParam : Lang() {
     companion object {
         val fileExtensions = listOf("url")
     }

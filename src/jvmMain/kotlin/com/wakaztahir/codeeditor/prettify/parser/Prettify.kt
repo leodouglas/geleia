@@ -113,7 +113,7 @@ class Prettify {
             registerExtensions(LangKotlin.fileExtensions) { LangKotlin() }
             registerExtensions(LangJson.fileExtensions) { LangJson() }
             registerExtensions(LangHeader.fileExtensions) { LangHeader() }
-            registerExtensions(LangUrl.fileExtensions) { LangUrl() }
+            registerExtensions(LangParam.fileExtensions) { LangParam() }
             registerExtensions(LangLasso.fileExtensions) { LangLasso() }
             registerExtensions(LangLogtalk.fileExtensions) { LangLogtalk() }
             registerExtensions(LangSwift.fileExtensions) { LangSwift() }

@@ -1,3 +1,5 @@
 package com.orbitasolutions.geleia.utils
 
-data class KeyStringValue(val key: String, val value: String = "", val disabled: Boolean = false)
+import kotlin.random.Random
+
+data class KeyStringValue(val key: String, val value: String = "", val disabled: Boolean = false, val index: Int = Random.nextInt())

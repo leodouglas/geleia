@@ -6,14 +6,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.orbitasolutions.geleia.utils.KeyStringValue
-import kotlinx.coroutines.launch
 import java.util.LinkedList
 
 @Composable
@@ -21,7 +19,7 @@ fun KeyValueTable(
     items: LinkedList<KeyStringValue>,
     readOnly: Boolean = false,
     allowDisable: Boolean = false,
-    change: (LinkedList<KeyStringValue>) -> Unit = {}
+    onChange: (LinkedList<KeyStringValue>) -> Unit = {}
 ) {
     val scrollState = rememberScrollState()
     LaunchedEffect(Unit) { scrollState.animateScrollTo(100) }
@@ -42,7 +40,7 @@ fun KeyValueTable(
                             checked = !entry.disabled && index < items.size - 1,
                             onCheckedChange = {
                                 items[index] = entry.copy(disabled = !it)
-                                change(items)
+                                onChange(items)
                             },
                             modifier = Modifier.fillMaxHeight()
                         )
@@ -60,10 +58,13 @@ fun KeyValueTable(
                         Text(text = entry.key, style = MaterialTheme.typography.subtitle2)
                     } else {
                         CustomTextField(
+                            index = entry.index,
                             value = entry.key,
                             onValueChange = {
                                 items[index] = entry.copy(key = it)
-                                change(items)
+                                if (entry.key != it) {
+                                    onChange(items)
+                                }
                             },
                             modifier = Modifier.fillMaxWidth().height(38.dp)
                         )
@@ -85,10 +86,13 @@ fun KeyValueTable(
                         Text(text = entry.value, style = MaterialTheme.typography.subtitle2)
                     } else {
                         CustomTextField(
+                            index = entry.index,
                             value = entry.value,
                             onValueChange = {
                                 items[index] = entry.copy(value = it)
-                                change(items)
+                                if (entry.value != it) {
+                                    onChange(items)
+                                }
                             },
                             modifier = Modifier.fillMaxWidth().height(38.dp).padding(0.dp)
                         )
@@ -108,7 +112,7 @@ fun KeyValueTable(
                         enabled = index < items.size - 1,
                         onClick = {
                             items.removeAt(index)
-                            change(items)
+                            onChange(items)
                         }) {
                         Icon(
                             imageVector = Icons.Default.Delete,
