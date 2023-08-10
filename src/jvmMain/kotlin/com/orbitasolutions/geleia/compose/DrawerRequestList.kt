@@ -3,10 +3,13 @@ package com.orbitasolutions.geleia.compose
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,6 +33,9 @@ fun DrawerState.DrawerRequestList(
     importRequest: () -> Unit,
     deleteRequest: (Int) -> Unit
 ) {
+    val scrollState = rememberScrollState()
+    LaunchedEffect(Unit) { scrollState.animateScrollTo(100) }
+
     Row {
         Surface(elevation = DrawerDefaults.Elevation) {
             Column(Modifier.fillMaxHeight().width(500.dp)) {
@@ -48,7 +54,7 @@ fun DrawerState.DrawerRequestList(
                         }
                     }
                 )
-                Column(Modifier.weight(1f)) {
+                Column(Modifier.weight(1f).verticalScroll(scrollState)) {
                     requests.mapIndexed { index, request ->
                         TextButton(
                             contentPadding = PaddingValues(0.dp),

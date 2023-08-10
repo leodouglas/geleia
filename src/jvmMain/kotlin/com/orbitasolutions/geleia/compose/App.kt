@@ -525,7 +525,7 @@ enum class TabRequestItems(val title: String) {
 fun annotatedStr(response: Response?): AnnotatedString? {
     return response?.let {
         if (it.statusCode != null) {
-            val status = annotatedStr(it.statusLineString())
+            val status = annotatedStr(it.statusLineString(), CodeLang.Http)
             val separator = annotatedStr(System.lineSeparator())
             val headers = annotatedStr(it.headerLineString())
             val data = annotatedStr(it.data ?: "", CodeLang.Json)

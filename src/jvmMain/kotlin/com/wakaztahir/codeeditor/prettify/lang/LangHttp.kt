@@ -10,10 +10,10 @@ import com.wakaztahir.codeeditor.utils.new
  *
  * @author leodouglas@gmail.com
  */
-class LangHeader : Lang() {
+class LangHttp : Lang() {
 
     companion object {
-        val fileExtensions = listOf("header")
+        val fileExtensions = listOf("http")
     }
 
     override fun getFileExtensions(): List<String> = fileExtensions
@@ -27,18 +27,13 @@ class LangHeader : Lang() {
             Regex("^[\\t\\n\\r \\xA0]+"),
             null
         )
-        shortcutStylePatterns.new(
-            Prettify.PR_PUNCTUATION,
-            Regex("^[.!%&()*+,\\-;<=>?\\[\\]^{|}:]+"),
-            null
+        fallthroughStylePatterns.new(
+            Prettify.PR_COMMENT,
+            Regex("(HTTP[/\\d.]*)")
         )
         fallthroughStylePatterns.new(
             Prettify.PR_KEYWORD,
-            Regex("^(?:true|false|null)\\b")
-        )
-        fallthroughStylePatterns.new(
-            Prettify.PR_LITERAL,
-            Regex("([^ ]+):.*")
+            Regex("^(0[xX][0-9a-fA-F_]+L?|0[bB][0-1]+L?|[0-9_.]+([eE]-?[0-9]+)?[fFL]?.*)")
         )
     }
 
