@@ -7,13 +7,13 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.onClick
 import androidx.compose.foundation.window.WindowDraggableArea
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -21,7 +21,9 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -30,35 +32,59 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.WindowScope
+import com.google.gson.GsonBuilder
+import com.jayway.jsonpath.JsonPath
 import com.orbitasolutions.geleia.domains.*
 import com.orbitasolutions.geleia.services.RequestService
+import com.orbitasolutions.geleia.utils.getProjectPref
+import com.orbitasolutions.geleia.utils.setProjectPref
 import com.wakaztahir.codeeditor.model.CodeLang
 import com.wakaztahir.codeeditor.prettify.PrettifyParser
 import com.wakaztahir.codeeditor.theme.CodeThemeType
 import com.wakaztahir.codeeditor.utils.parseCodeAsAnnotatedString
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import net.minidev.json.JSONArray
+import net.minidev.json.JSONObject
+import net.minidev.json.parser.JSONParser
 import java.awt.Taskbar
+import java.awt.event.WindowAdapter
+import java.awt.event.WindowEvent
 import java.util.*
 import kotlin.concurrent.thread
+
+val codeStyleSource = TextStyle(
+    fontSize = 13.sp,
+    fontFamily = FontFamily.Monospace,
+    lineHeight = 16.sp,
+    fontWeight = FontWeight.Thin
+)
 
 @Preview
 @Composable
 @OptIn(ExperimentalFoundationApi::class)
-fun WindowScope.app() {
+fun WindowScope.app(onClosing: (WindowEvent?) -> Unit) {
+
+    window.addWindowListener(object : WindowAdapter() {
+        override fun windowClosing(e: WindowEvent?) {
+            onClosing(e)
+        }
+    })
+
     //request remembers
     var requests by remember { mutableStateOf(RequestService.loadFileRequests()) }
     val vars by remember { mutableStateOf(RequestService.loadVars()) }
     var varGroup by remember { mutableStateOf("DEFAULT") }
-    var requestIndex by remember { mutableStateOf(0) }
-    var lastRequestId by remember { mutableStateOf(0) }
+    var requestIndex by remember { mutableStateOf(getProjectPref("lastRequestIndex", "0").toInt()) }
+    if (requestIndex > requests.size) requestIndex = 0
     val request = requests[requestIndex]
+    var lastRequestId by remember { mutableStateOf(0) }
     var responseProgress by remember { mutableStateOf("") }
     var response: Response? by remember { mutableStateOf(null) }
     var url by remember {
         mutableStateOf(
             TextFieldValue(
-                annotatedString = annotatedString(
+                annotatedString = annotatedStr(
                     request.url,
                     CodeLang.Param
                 )
@@ -85,17 +111,12 @@ fun WindowScope.app() {
     var requestTabItemsSelected by remember { mutableStateOf(defaultTabRequest(request)) }
     var editingName by remember { mutableStateOf(false) }
     var showImportDialog by remember { mutableStateOf(false) }
-    val codeStyleSource = TextStyle(
-        fontSize = 13.sp,
-        fontFamily = FontFamily.Monospace,
-        lineHeight = 16.sp,
-        fontWeight = FontWeight.Thin
-    )
 
     fun loadRequest(index: Int, show: Boolean = true) {
         val nextRequest = requests[index]
         requestIndex = index
-        url = TextFieldValue(annotatedString = annotatedString(nextRequest.url, CodeLang.Param))
+        setProjectPref("lastRequestIndex", requestIndex.toString())
+        url = TextFieldValue(annotatedString = annotatedStr(nextRequest.url, CodeLang.Param))
         originalName = nextRequest.name
         editingName = false
         requesting = false
@@ -219,21 +240,23 @@ fun WindowScope.app() {
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.End
                         ) {
-                            IconButton(enabled = request.modified && request.command != null,
-                                modifier = Modifier.size(44.dp),
-                                onClick = {
-                                    scope.launch {
-                                        onChangeRequest(
-                                            RequestService.restore(request),
-                                            save = true
-                                        )
-                                        loadRequest(requestIndex, true)
-                                    }
-                                }) {
-                                Icon(
-                                    imageVector = Icons.Default.Restore,
-                                    contentDescription = "Restore"
-                                )
+                            if (request.command != null) {
+                                IconButton(enabled = request.modified,
+                                    modifier = Modifier.size(44.dp),
+                                    onClick = {
+                                        scope.launch {
+                                            onChangeRequest(
+                                                RequestService.restore(request),
+                                                save = true
+                                            )
+                                            loadRequest(requestIndex, true)
+                                        }
+                                    }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Restore,
+                                        contentDescription = "Restore"
+                                    )
+                                }
                             }
                             IconButton(enabled = request.modified, modifier = Modifier.size(44.dp),
                                 onClick = {
@@ -407,12 +430,13 @@ fun WindowScope.app() {
                             value = url,
                             singleLine = true,
                             onValueChange = {
-                                url = it.copy(annotatedString = annotatedString(it.text, CodeLang.Param))
+                                url = it.copy(annotatedString = annotatedStr(it.text, CodeLang.Param))
                                 if (request.url != it.text) {
                                     onChangeRequest(request.copy(url = it.text))
                                 }
                             },
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)
+                            modifier = Modifier.fillMaxWidth()
+                                .padding(horizontal = 4.dp)
                                 .focusRequester(urlFocusRequest)
                         )
                     }
@@ -440,14 +464,14 @@ fun WindowScope.app() {
                     TabRequestItems.DATA -> {
                         var requestFieldValue by remember(request) {
                             mutableStateOf(
-                                TextFieldValue(annotatedString = annotatedString(request.data ?: "", CodeLang.Json))
+                                TextFieldValue(annotatedString = annotatedStr(request.data ?: "", CodeLang.Json))
                             )
                         }
 
                         OutlinedTextField(
                             value = requestFieldValue,
                             onValueChange = {
-                                requestFieldValue = it.copy(annotatedString = annotatedString(it.text, CodeLang.Json))
+                                requestFieldValue = it.copy(annotatedString = annotatedStr(it.text, CodeLang.Json))
                                 if (request.data != it.text) {
                                     onChangeRequest(request.copy(data = it.text))
                                 }
@@ -464,7 +488,7 @@ fun WindowScope.app() {
                     TabRequestItems.QUERY_PARAMS ->
                         KeyValueTable(LinkedList(request.queryParams)) {
                             val newRequest = request.copy(queryParams = it)
-                            url = url.copy(annotatedString = annotatedString(newRequest.url, CodeLang.Param))
+                            url = url.copy(annotatedString = annotatedStr(newRequest.url, CodeLang.Param))
                             onChangeRequest(newRequest)
                         }
                 }
@@ -475,31 +499,10 @@ fun WindowScope.app() {
                 exit = fadeOut(animationSpec = tween(50)),
                 modifier = Modifier.weight(2f, true)
             ) {
-
-                var responseFieldValue by remember(response, responseProgress) {
-                    mutableStateOf(
-                        TextFieldValue(
-                            annotatedString = annotatedStringResponse(response) ?: annotatedString(responseProgress)
-                        )
-                    )
-
-                }
-
-                OutlinedTextField(
-                    label = { Text("response") },
-                    value = responseFieldValue,
-                    readOnly = true,
-                    onValueChange = {
-                        responseFieldValue = it.copy(
-                            annotatedString = annotatedStringResponse(response) ?: annotatedString(responseProgress)
-                        )
-                    },
-                    textStyle = codeStyleSource,
-                    modifier = Modifier.fillMaxSize()
-                        .padding(horizontal = 8.dp)
-                        .padding(bottom = 8.dp)
-                        .focusRequester(responseFocusRequest)
-                )
+                val defaultFilter = getProjectPref("request.$requestIndex.filter", "$")
+                ResponsePanel(response, responseProgress, responseFocusRequest, defaultFilter, onFilter = {
+                    setProjectPref("request.$requestIndex.filter", it)
+                })
             }
         }
     }
@@ -508,8 +511,8 @@ fun WindowScope.app() {
 fun justTry(function: () -> Unit) {
     try {
         function()
-    } catch (_: Exception) {
-
+    } catch (ex: Exception) {
+        ex.printStackTrace()
     }
 }
 
@@ -519,22 +522,22 @@ enum class TabRequestItems(val title: String) {
     DATA("Data")
 }
 
-fun annotatedStringResponse(response: Response?): AnnotatedString? {
+fun annotatedStr(response: Response?): AnnotatedString? {
     return response?.let {
         if (it.statusCode != null) {
-            val status = annotatedString(it.statusLineString())
-            val separator = annotatedString(System.lineSeparator())
-            val headers = annotatedString(it.headerLineString())
-            val data = annotatedString(it.data ?: "", CodeLang.Json)
+            val status = annotatedStr(it.statusLineString())
+            val separator = annotatedStr(System.lineSeparator())
+            val headers = annotatedStr(it.headerLineString())
+            val data = annotatedStr(it.data ?: "", CodeLang.Json)
 
             status + separator + separator + headers + separator + separator + separator + data
         } else {
-            annotatedString(it.data ?: "", CodeLang.Json)
+            annotatedStr(it.data ?: "", CodeLang.Json)
         }
     }
 }
 
-fun annotatedString(code: String, codeLang: CodeLang = CodeLang.Header): AnnotatedString {
+fun annotatedStr(code: String, codeLang: CodeLang = CodeLang.Header): AnnotatedString {
     return parseCodeAsAnnotatedString(
         parser = PrettifyParser(),
         theme = CodeThemeType.Material.theme,

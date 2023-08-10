@@ -58,9 +58,9 @@ fun KeyValueTable(
                         Text(text = entry.key, style = MaterialTheme.typography.subtitle2)
                     } else {
                         CustomTextField(
-                            index = entry.index,
+                            id = entry.index.toString(),
                             value = entry.key,
-                            onValueChange = {
+                            onChange = {
                                 items[index] = entry.copy(key = it)
                                 if (entry.key != it) {
                                     onChange(items)
@@ -86,9 +86,9 @@ fun KeyValueTable(
                         Text(text = entry.value, style = MaterialTheme.typography.subtitle2)
                     } else {
                         CustomTextField(
-                            index = entry.index,
+                            id = entry.index.toString(),
                             value = entry.value,
-                            onValueChange = {
+                            onChange = {
                                 items[index] = entry.copy(value = it)
                                 if (entry.value != it) {
                                     onChange(items)
