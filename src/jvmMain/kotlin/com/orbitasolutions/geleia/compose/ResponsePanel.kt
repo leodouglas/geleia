@@ -1,6 +1,9 @@
 package com.orbitasolutions.geleia.compose
 
+import androidx.compose.foundation.gestures.FlingBehavior
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -17,10 +20,13 @@ import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.google.gson.GsonBuilder
 import com.jayway.jsonpath.JsonPath
 import com.orbitasolutions.geleia.domains.Response
+import com.orbitasolutions.geleia.utils.getProjectPref
+import com.orbitasolutions.geleia.utils.setProjectPref
 import com.wakaztahir.codeeditor.model.CodeLang
 import net.minidev.json.JSONArray
 import net.minidev.json.JSONObject
@@ -33,12 +39,10 @@ import kotlin.concurrent.thread
 fun ResponsePanel(
     resp: Response?,
     progress: String,
-    responseFocusRequester: FocusRequester,
-    defaultFilter: String,
-    onFilter: (String) -> Unit = { }
+    responseFocusRequester: FocusRequester
 ) {
     var showFilterPanel by remember { mutableStateOf(false) }
-    var findPath by remember { mutableStateOf(defaultFilter) }
+    var findPath by remember { mutableStateOf(getProjectPref("request.${resp.hashCode()}.filter", "$")) }
     var usingFindPath by remember { mutableStateOf(false) }
     var findText: String by remember { mutableStateOf("") }
     var findNext by remember { mutableStateOf(0) }
@@ -74,7 +78,7 @@ fun ResponsePanel(
                 .create()
                 .toJson(jsonpath)
 
-            onFilter(findPath)
+            setProjectPref("request.${resp.hashCode()}.filter", findPath)
             findError = false
         } catch (ex: Exception) {
             filteredJson = ""
@@ -140,6 +144,8 @@ fun ResponsePanel(
         showFilterPanel = false
         responseFocusRequester.requestFocus()
     }
+
+    val scroll = rememberScrollState(0)
 
     OutlinedTextField(
         label = { Text("response") },

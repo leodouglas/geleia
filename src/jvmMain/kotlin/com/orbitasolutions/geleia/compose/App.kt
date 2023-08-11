@@ -13,7 +13,6 @@ import androidx.compose.foundation.window.WindowDraggableArea
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.Info
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -21,20 +20,21 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.WindowScope
-import com.google.gson.GsonBuilder
-import com.jayway.jsonpath.JsonPath
 import com.orbitasolutions.geleia.domains.*
+import com.orbitasolutions.geleia.extensions.MaterialAppearance
+import com.orbitasolutions.geleia.extensions.onClose
+import com.orbitasolutions.geleia.extensions.rememberPrefWindowState
+import com.orbitasolutions.geleia.extensions.savePrefWindowState
 import com.orbitasolutions.geleia.services.RequestService
 import com.orbitasolutions.geleia.utils.getProjectPref
 import com.orbitasolutions.geleia.utils.setProjectPref
@@ -44,9 +44,6 @@ import com.wakaztahir.codeeditor.theme.CodeThemeType
 import com.wakaztahir.codeeditor.utils.parseCodeAsAnnotatedString
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import net.minidev.json.JSONArray
-import net.minidev.json.JSONObject
-import net.minidev.json.parser.JSONParser
 import java.awt.Taskbar
 import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
@@ -63,13 +60,11 @@ val codeStyleSource = TextStyle(
 @Preview
 @Composable
 @OptIn(ExperimentalFoundationApi::class)
-fun WindowScope.app(onClosing: (WindowEvent?) -> Unit) {
+fun WindowScope.app() {
 
-    window.addWindowListener(object : WindowAdapter() {
-        override fun windowClosing(e: WindowEvent?) {
-            onClosing(e)
-        }
-    })
+    onClose {
+        savePrefWindowState("main", window)
+    }
 
     //request remembers
     var requests by remember { mutableStateOf(RequestService.loadFileRequests()) }
@@ -94,7 +89,6 @@ fun WindowScope.app(onClosing: (WindowEvent?) -> Unit) {
     var originalName by remember { mutableStateOf(request.name) }
 
     fun onChangeRequest(change: Request, save: Boolean = false) {
-//        requests[requests.indexOfFirst { it.id == change.id }] = change.copy(modified = !save)
         requests[requestIndex] = change.copy(modified = !save)
         requests = RequestList(requests.toList())
     }
@@ -105,6 +99,7 @@ fun WindowScope.app(onClosing: (WindowEvent?) -> Unit) {
     //front remembers
     var requesting by remember { mutableStateOf(false) }
     var responseVisible by remember { mutableStateOf(false) }
+    var responseInPopup by remember { mutableStateOf(false) }
     val responseFocusRequest = FocusRequester()
     val nameFocusRequest = FocusRequester()
     val urlFocusRequest = FocusRequester()
@@ -356,42 +351,66 @@ fun WindowScope.app(onClosing: (WindowEvent?) -> Unit) {
 
         scaffoldState = scaffoldState,
         floatingActionButton = {
-            Button(
-                onClick = {
-                    lastRequestId += 1
-                    if (!requesting) {
-                        scope.launch { responseVisible = true }
-                        thread {
-                            response = null
-                            requesting = true
-                            responseProgress = "Sending request..."
-                            val useVars = RequestService.separateVars(vars, varGroup)
-                            response = RequestService.makeRequest(request, useVars, lastRequestId)
-                            scope.launch {
-                                if (lastRequestId == response?.id) {
-                                    responseProgress = "Done"
-                                    requesting = false
+            Row {
+                if (responseVisible && !responseInPopup) {
+                    Button(
+                        onClick = {
+                            responseInPopup = true
+                            thread {
+                                scope.launch {
                                     delay(100)
                                     justTry {
                                         responseFocusRequest.requestFocus()
                                     }
-                                    Taskbar.getTaskbar().requestUserAttention(true, false)
                                 }
                             }
-                        }
-                    } else {
-                        responseProgress = "Canceled request"
-                        requesting = false
+                        },
+                        modifier = Modifier.defaultMinSize(minWidth = 56.dp, minHeight = 56.dp),
+                        colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.surface)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.OpenInNew,
+                            contentDescription = "Open in a popup",
+                        )
                     }
-                },
-                modifier = Modifier.defaultMinSize(minWidth = 56.dp, minHeight = 56.dp)
-                    .alpha(if (!requesting) ContentAlpha.high else ContentAlpha.disabled),
-                colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.primary)
-            ) {
-                Icon(
-                    imageVector = if (requesting) Icons.Default.Cancel else if (!responseVisible) Icons.Default.Send else Icons.Default.Refresh,
-                    contentDescription = if (requesting) "Cancel" else if (!responseVisible) "Execute" else "Refresh",
-                )
+                }
+                Spacer(modifier = Modifier.width(10.dp))
+                Button(
+                    onClick = {
+                        lastRequestId += 1
+                        if (!requesting) {
+                            scope.launch { responseVisible = true }
+                            thread {
+                                response = null
+                                requesting = true
+                                responseProgress = "Sending request..."
+                                val useVars = RequestService.separateVars(vars, varGroup)
+                                response = RequestService.makeRequest(request, useVars, lastRequestId)
+                                scope.launch {
+                                    if (lastRequestId == response?.id) {
+                                        responseProgress = "Done"
+                                        requesting = false
+                                        delay(100)
+                                        justTry {
+                                            responseFocusRequest.requestFocus()
+                                        }
+                                        Taskbar.getTaskbar().requestUserAttention(true, false)
+                                    }
+                                }
+                            }
+                        } else {
+                            responseProgress = "Canceled request"
+                            requesting = false
+                        }
+                    },
+                    modifier = Modifier.defaultMinSize(minWidth = 56.dp, minHeight = 56.dp)
+                        .alpha(if (!requesting) ContentAlpha.high else ContentAlpha.disabled)
+                ) {
+                    Icon(
+                        imageVector = if (requesting) Icons.Default.Cancel else if (!responseVisible) Icons.Default.Send else Icons.Default.Refresh,
+                        contentDescription = if (requesting) "Cancel" else if (!responseVisible) "Execute" else "Refresh",
+                    )
+                }
             }
         },
 
@@ -493,16 +512,28 @@ fun WindowScope.app(onClosing: (WindowEvent?) -> Unit) {
                         }
                 }
             }
-            AnimatedVisibility(
-                responseVisible,
-                enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
-                exit = fadeOut(animationSpec = tween(50)),
-                modifier = Modifier.weight(2f, true)
-            ) {
-                val defaultFilter = getProjectPref("request.$requestIndex.filter", "$")
-                ResponsePanel(response, responseProgress, responseFocusRequest, defaultFilter, onFilter = {
-                    setProjectPref("request.$requestIndex.filter", it)
-                })
+            if (!responseInPopup) {
+                AnimatedVisibility(
+                    responseVisible,
+                    enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
+                    exit = fadeOut(animationSpec = tween(50)),
+                    modifier = Modifier.weight(2f, true)
+                ) {
+                    ResponsePanel(response, responseProgress, responseFocusRequest)
+                }
+            } else {
+                val rememberWindowState = rememberPrefWindowState("resp")
+
+                Window(onCloseRequest = { responseInPopup = false }, state = rememberWindowState, title = "Response") {
+                    onClose {
+                        savePrefWindowState("resp", window)
+                    }
+                    MaterialAppearance {
+                        Box(Modifier.padding(top = 25.dp)) {
+                            ResponsePanel(response, responseProgress, responseFocusRequest)
+                        }
+                    }
+                }
             }
         }
     }
