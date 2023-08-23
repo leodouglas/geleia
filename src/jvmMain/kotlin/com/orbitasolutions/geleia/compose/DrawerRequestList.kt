@@ -79,7 +79,7 @@ fun DrawerState.DrawerRequestList(
                                 }
                                 Text(
                                     text = request.method.short,
-                                    modifier = Modifier.padding(end = 6.dp),
+                                    modifier = Modifier.padding(end = 6.dp).width(40.dp),
                                     textAlign = TextAlign.End,
                                     style = MaterialTheme.typography.body2,
                                     color = coloringMethods(request.method)

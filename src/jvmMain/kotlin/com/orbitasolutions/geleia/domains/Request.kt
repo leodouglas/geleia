@@ -23,7 +23,7 @@ data class Request(
 ) {
 
     constructor(
-        id: Int = Random.nextInt(),
+        id: Int?,
         name: String = "untitled",
         method: Method = Method.GET,
         headers: List<KeyStringValue> = listOf(),
@@ -32,7 +32,7 @@ data class Request(
         modified: Boolean = false,
         command: String? = null
     ) : this(
-        id = id,
+        id = id ?: Random.nextInt(),
         name = name,
         method = method,
         headers = headers,

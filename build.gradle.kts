@@ -12,7 +12,7 @@ plugins {
 apply(plugin = "signing")
 
 group = "com.orbitasolutions"
-version = "0.2.7"
+version = "0.2.8"
 
 repositories {
     google()

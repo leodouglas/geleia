@@ -77,7 +77,7 @@ object RequestService {
     fun loadFileRequests(): RequestList {
         val commands = loadFileCommands("curl")
 
-        return commands.map(RequestService::convertCurlCommand)
+        return commands.mapIndexed { id, curl -> convertCurlCommand(curl, id) }
             .let(::RequestList)
             .apply {
                 if (this.isEmpty()) this.add(Request(modified = true))
@@ -106,7 +106,7 @@ object RequestService {
         }.trim())
     }
 
-    fun convertCurlCommand(originalCurlCommand: String): Request {
+    fun convertCurlCommand(originalCurlCommand: String, forceId: Int? = null): Request {
         val curlCommand = originalCurlCommand.replace(System.lineSeparator(), " ")
         val methodRegex = "(-X|--request)\\s+(\\w+)".toRegex()
         val urlRegex = "(https?://\\S*(?<!'))".toRegex()
@@ -150,7 +150,8 @@ object RequestService {
             headers = headers,
             data = data,
             name = name,
-            url = url
+            url = url,
+            id = forceId
         ).also {
             println("Reading curl: $it")
         }

@@ -53,7 +53,7 @@ import kotlin.concurrent.thread
 val codeStyleSource = TextStyle(
     fontSize = 13.sp,
     fontFamily = FontFamily.Monospace,
-    lineHeight = 16.sp,
+    lineHeight = 17.sp,
     fontWeight = FontWeight.Thin
 )
 
@@ -519,7 +519,7 @@ fun WindowScope.app() {
                     exit = fadeOut(animationSpec = tween(50)),
                     modifier = Modifier.weight(2f, true)
                 ) {
-                    ResponsePanel(response, responseProgress, responseFocusRequest)
+                    ResponsePanel(request, response, responseProgress, responseFocusRequest)
                 }
             } else {
                 val rememberWindowState = rememberPrefWindowState("resp")
@@ -530,7 +530,7 @@ fun WindowScope.app() {
                     }
                     MaterialAppearance {
                         Box(Modifier.padding(top = 25.dp)) {
-                            ResponsePanel(response, responseProgress, responseFocusRequest)
+                            ResponsePanel(request, response, responseProgress, responseFocusRequest)
                         }
                     }
                 }
