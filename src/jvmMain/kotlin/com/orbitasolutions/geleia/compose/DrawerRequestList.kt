@@ -34,7 +34,6 @@ fun DrawerState.DrawerRequestList(
     deleteRequest: (Int) -> Unit
 ) {
     val scrollState = rememberScrollState()
-    LaunchedEffect(Unit) { scrollState.animateScrollTo(100) }
 
     Row {
         Surface(elevation = DrawerDefaults.Elevation) {

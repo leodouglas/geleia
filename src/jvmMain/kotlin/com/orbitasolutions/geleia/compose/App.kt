@@ -45,8 +45,6 @@ import com.wakaztahir.codeeditor.utils.parseCodeAsAnnotatedString
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.awt.Taskbar
-import java.awt.event.WindowAdapter
-import java.awt.event.WindowEvent
 import java.util.*
 import kotlin.concurrent.thread
 
@@ -481,27 +479,7 @@ fun WindowScope.app() {
                         }
 
                     TabRequestItems.DATA -> {
-                        var requestFieldValue by remember(request) {
-                            mutableStateOf(
-                                TextFieldValue(annotatedString = annotatedStr(request.data ?: "", CodeLang.Json))
-                            )
-                        }
-
-                        OutlinedTextField(
-                            value = requestFieldValue,
-                            onValueChange = {
-                                requestFieldValue = it.copy(annotatedString = annotatedStr(it.text, CodeLang.Json))
-                                if (request.data != it.text) {
-                                    onChangeRequest(request.copy(data = it.text))
-                                }
-                            },
-                            label = { Text("body") },
-                            textStyle = codeStyleSource,
-                            modifier = Modifier.fillMaxSize()
-                                .padding(horizontal = 8.dp)
-                                .padding(bottom = 8.dp)
-
-                        )
+                        RequestData(request, ::onChangeRequest)
                     }
 
                     TabRequestItems.QUERY_PARAMS ->
@@ -537,6 +515,31 @@ fun WindowScope.app() {
             }
         }
     }
+}
+
+@Composable
+fun RequestData(req: Request, onChangeRequest: (Request) -> Unit) {
+    var requestFieldValue by remember(req) {
+        mutableStateOf(
+            TextFieldValue(annotatedString = annotatedStr(req.data ?: "", CodeLang.Json))
+        )
+    }
+
+    OutlinedTextField(
+        value = requestFieldValue,
+        onValueChange = {
+            requestFieldValue = it.copy(annotatedString = annotatedStr(it.text, CodeLang.Json))
+            if (req.data != it.text) {
+                onChangeRequest(req.copy(data = it.text))
+            }
+        },
+        label = { Text("body") },
+        textStyle = codeStyleSource,
+        modifier = Modifier.fillMaxSize()
+            .padding(horizontal = 8.dp)
+            .padding(bottom = 8.dp)
+
+    )
 }
 
 fun justTry(function: () -> Unit) {
