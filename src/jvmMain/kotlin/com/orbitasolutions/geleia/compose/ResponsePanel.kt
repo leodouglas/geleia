@@ -41,11 +41,30 @@ import java.awt.event.KeyEvent
 import kotlin.concurrent.thread
 
 @Composable
+fun ResponseHeader(annotatedHeader: AnnotatedString) {
+    var responseFieldValue by remember(annotatedHeader) {
+        mutableStateOf(TextFieldValue(annotatedString = annotatedHeader))
+    }
+
+    val verticalScrollState = rememberScrollState()
+
+    BasicTextField(
+        value = responseFieldValue,
+        readOnly = true,
+        onValueChange = {
+            responseFieldValue = it.copy(annotatedString = annotatedHeader)
+        },
+        textStyle = codeStyleSource,
+        modifier = Modifier.fillMaxWidth().horizontalScroll(verticalScrollState).padding(start = 40.dp)
+    )
+}
+
+@Composable
 fun ResponseData(
-        annotatedResponse: AnnotatedString,
-        findTextSelected: TextRange,
-        responseFocusRequester: FocusRequester,
-        showFind: () -> Unit
+    annotatedResponse: AnnotatedString,
+    findTextSelected: TextRange,
+    responseFocusRequester: FocusRequester,
+    showFind: () -> Unit
 ) {
     var responseFieldValue by remember(annotatedResponse, findTextSelected) {
         mutableStateOf(TextFieldValue(annotatedString = annotatedResponse, selection = findTextSelected))
@@ -54,32 +73,32 @@ fun ResponseData(
     val verticalScrollState = rememberScrollState()
 
     BasicTextField(
-            value = responseFieldValue,
-            readOnly = true,
-            onValueChange = {
-                responseFieldValue = it.copy(annotatedString = annotatedResponse)
-            },
-            textStyle = codeStyleSource,
-            modifier = Modifier.fillMaxSize()
-                    .horizontalScroll(verticalScrollState)
-                    .focusRequester(responseFocusRequester)
-                    .onKeyEvent {
-                        if (it.isReleasedEvent) {
-                            if (it.key.nativeKeyCode == KeyEvent.VK_F && it.modifiers == InputEvent.META_DOWN_MASK) {
-                                showFind()
-                            }
-                        }
-                        false
+        value = responseFieldValue,
+        readOnly = true,
+        onValueChange = {
+            responseFieldValue = it.copy(annotatedString = annotatedResponse)
+        },
+        textStyle = codeStyleSource,
+        modifier = Modifier.fillMaxSize()
+            .horizontalScroll(verticalScrollState)
+            .focusRequester(responseFocusRequester)
+            .onKeyEvent {
+                if (it.isReleasedEvent) {
+                    if (it.key.nativeKeyCode == KeyEvent.VK_F && it.modifiers == InputEvent.META_DOWN_MASK) {
+                        showFind()
                     }
+                }
+                false
+            }
     )
 }
 
 @Composable
 fun ResponsePanel(
-        req: Request,
-        resp: Response?,
-        progress: String,
-        responseFocusRequester: FocusRequester
+    req: Request,
+    resp: Response?,
+    progress: String,
+    responseFocusRequester: FocusRequester
 ) {
     var showFilterPanel by remember { mutableStateOf(false) }
     var findPath by remember { mutableStateOf(getProjectPref("request.${req.id}.filter", "$")) }
@@ -97,18 +116,20 @@ fun ResponsePanel(
     val annotatedResponse = if (filteredJson.isNotEmpty()) {
         annotatedStr(filteredJson, CodeLang.Json)
     } else {
-        annotatedStr(resp) ?: annotatedStr(progress)
+        annotatedStr(resp?.data ?: "", CodeLang.Json)
     }
+
+    val annotatedHeader = annotatedStr(resp, progress)
 
     val dataLines by remember(resp, progress, filteredJson) {
-        mutableStateOf(if (filteredJson.isNotEmpty()) {
-            filteredJson.lines()
-        } else {
-            resp?.data?.lines() ?: listOf()
-        })
+        mutableStateOf(
+            if (filteredJson.isNotEmpty()) {
+                filteredJson.lines()
+            } else {
+                resp?.data?.lines() ?: listOf()
+            }
+        )
     }
-
-    val countHeaderLines = annotatedResponse.text.lines().count() - dataLines.count()
 
     var capsules by remember(resp) {
         mutableStateOf(dataLines.mapIndexed { index, s ->
@@ -127,9 +148,9 @@ fun ResponsePanel(
                 JsonPath.read<JSONArray>(o, findPath)
             }
             filteredJson = GsonBuilder().setLenient()
-                    .setPrettyPrinting()
-                    .create()
-                    .toJson(jsonpath)
+                .setPrettyPrinting()
+                .create()
+                .toJson(jsonpath)
 
             setProjectPref("request.${req.id}.filter", findPath)
             findError = false
@@ -210,124 +231,132 @@ fun ResponsePanel(
         responseFocusRequester.requestFocus()
     }
 
-    Column(Modifier.padding(8.dp)) {
+    val defaultBorder = BorderStroke(
+        1.dp, TextFieldDefaults.textFieldColors()
+            .trailingIconColor(enabled = false, isError = false).value
+    )
+    Column(
+        Modifier.padding(8.dp)
+            .border(defaultBorder, MaterialTheme.shapes.small)
+            .padding(15.dp)
+    ) {
         val scrollState = rememberScrollState()
 
         val caretStyleSource = TextStyle(
-                fontSize = 9.sp,
-                fontFamily = FontFamily.Monospace,
-                lineHeight = 17.sp,
-                fontWeight = FontWeight.Thin
+            fontSize = 9.sp,
+            fontFamily = FontFamily.Monospace,
+            lineHeight = 17.sp,
+            fontWeight = FontWeight.Thin
         )
 
-        Row(Modifier.verticalScroll(scrollState)) {
-            Row {
-                buildString {
-                    repeat(countHeaderLines) {
-                        appendLine()
-                    }
-                    repeat(dataLines.count()) {
-                        appendLine(it.inc())
-                    }
-                }.let {
-                    Text(
+        Column(Modifier.verticalScroll(scrollState)) {
+            ResponseHeader(annotatedHeader)
+            Row(Modifier.padding(top = 25.dp)) {
+                Row {
+                    buildString {
+                        repeat(dataLines.count()) {
+                            appendLine(it.inc())
+                        }
+                    }.let {
+                        Text(
                             it,
                             style = codeStyleSource,
                             modifier = Modifier.padding(end = 10.dp).alpha(ContentAlpha.disabled)
-                    )
-                }
-                Column(Modifier.width(18.dp)) {
-
-                    repeat(countHeaderLines) {
-                        Text(" ", style = caretStyleSource)
+                        )
                     }
+                    Column(Modifier.width(18.dp)) {
 
-                    capsules.forEach { capsuled ->
-                        capsuled?.let {
-                            if (!capsuled.closed) {
-                                Text("▼", style = caretStyleSource, modifier = Modifier.alpha(ContentAlpha.disabled)
-                                        .clickable {
-                                            capsuled.closed = true
-                                            capsules = ArrayList(capsules)
-                                            capsuleText(capsuled)
-                                        })
-                            } else {
-                                Text("►", style = caretStyleSource, modifier = Modifier.alpha(ContentAlpha.disabled)
-                                    .clickable {
-                                        capsuled.closed = false
-                                        capsules = ArrayList(capsules)
-                                    })
-                                Text(" ", style = caretStyleSource)
-                            }
-                        } ?: Text(" ", style = caretStyleSource)
+                        capsules.forEach { capsuled ->
+                            capsuled?.let {
+                                if (!capsuled.closed) {
+                                    Text(
+                                        "-", style = caretStyleSource, modifier = Modifier.alpha(ContentAlpha.disabled)
+//                                        .clickable {
+//                                            capsuled.closed = true
+//                                            capsules = ArrayList(capsules)
+//                                            capsuleText(capsuled)
+//                                        }
+                                    )
+                                } else {
+                                    Text(
+                                        "+", style = caretStyleSource, modifier = Modifier.alpha(ContentAlpha.disabled)
+//                                        .clickable {
+//                                            capsuled.closed = false
+//                                            capsules = ArrayList(capsules)
+//                                        }
+                                    )
+                                    Text(" ", style = caretStyleSource)
+                                }
+                            } ?: Text(" ", style = caretStyleSource)
+                        }
                     }
                 }
-            }
-            Column(Modifier.padding(end = 8.dp)) {
-                ResponseData(annotatedResponse, findTextSelected, responseFocusRequester, ::showFind)
+                Column(Modifier.padding(end = 8.dp)) {
+                    ResponseData(annotatedResponse, findTextSelected, responseFocusRequester, ::showFind)
+                }
             }
         }
     }
 
     resp?.data?.let {
         Row(
-                horizontalArrangement = Arrangement.End,
-                modifier = Modifier.fillMaxWidth().padding(end = 20.dp, top = 10.dp)
+            horizontalArrangement = Arrangement.End,
+            modifier = Modifier.fillMaxWidth().padding(end = 20.dp, top = 10.dp)
         ) {
             if (showFilterPanel) {
                 Surface(elevation = 1.dp, shape = MaterialTheme.shapes.small) {
                     Row(Modifier.height(40.dp).padding(4.dp)) {
                         CustomTextField(
-                                id = if (usingFindPath) "findPath" else "findText",
-                                error = findError,
-                                modifier = Modifier.width(400.dp).focusRequester(inputFilterFocusRequester)
-                                        .onKeyEvent {
-                                            if (it.isReleasedEvent) {
-                                                if (it.key.nativeKeyCode == KeyEvent.VK_F3) {
-                                                    submitFind()
-                                                }
-                                                if (it.key.nativeKeyCode == KeyEvent.VK_ESCAPE) {
-                                                    closeFind()
-                                                }
-                                            }
-                                            false
-                                        },
-                                onSubmit = { submitFind() },
-                                value = if (usingFindPath) findPath else findText,
-                                placeholder = if (usingFindPath) "Find json path" else "Find text",
-                                onChange = {
-                                    findError = false
-
-                                    if (usingFindPath) {
-                                        findPath = it
-                                    } else {
-                                        findText = it
-                                        calcFindText(annotatedResponse.text, true)
+                            id = if (usingFindPath) "findPath" else "findText",
+                            error = findError,
+                            modifier = Modifier.width(400.dp).focusRequester(inputFilterFocusRequester)
+                                .onKeyEvent {
+                                    if (it.isReleasedEvent) {
+                                        if (it.key.nativeKeyCode == KeyEvent.VK_F3) {
+                                            submitFind()
+                                        }
+                                        if (it.key.nativeKeyCode == KeyEvent.VK_ESCAPE) {
+                                            closeFind()
+                                        }
                                     }
+                                    false
+                                },
+                            onSubmit = { submitFind() },
+                            value = if (usingFindPath) findPath else findText,
+                            placeholder = if (usingFindPath) "Find json path" else "Find text",
+                            onChange = {
+                                findError = false
+
+                                if (usingFindPath) {
+                                    findPath = it
+                                } else {
+                                    findText = it
+                                    calcFindText(annotatedResponse.text, true)
                                 }
+                            }
                         )
                         IconButton(modifier = Modifier.size(38.dp).focusRequester(filterFocusRequester),
-                                onClick = {
-                                    usingFindPath = !usingFindPath
-                                    findText = ""
-                                    filteredJson = ""
-                                    findError = false
-                                    inputFilterFocusRequester.requestFocus()
-                                }) {
+                            onClick = {
+                                usingFindPath = !usingFindPath
+                                findText = ""
+                                filteredJson = ""
+                                findError = false
+                                inputFilterFocusRequester.requestFocus()
+                            }) {
                             Icon(
-                                    imageVector = Icons.Default.FilterAlt,
-                                    contentDescription = "FindPath",
-                                    tint = if (usingFindPath) MaterialTheme.colors.primary else MaterialTheme.colors.onPrimary
+                                imageVector = Icons.Default.FilterAlt,
+                                contentDescription = "FindPath",
+                                tint = if (usingFindPath) MaterialTheme.colors.primary else MaterialTheme.colors.onPrimary
                             )
                         }
                         val uriHandler = LocalUriHandler.current
                         IconButton(modifier = Modifier.size(38.dp), enabled = usingFindPath,
-                                onClick = {
-                                    uriHandler.openUri("https://support.smartbear.com/alertsite/docs/monitors/api/endpoint/jsonpath.html")
-                                }) {
+                            onClick = {
+                                uriHandler.openUri("https://support.smartbear.com/alertsite/docs/monitors/api/endpoint/jsonpath.html")
+                            }) {
                             Icon(
-                                    imageVector = Icons.Outlined.Info,
-                                    contentDescription = "info",
+                                imageVector = Icons.Outlined.Info,
+                                contentDescription = "info",
                             )
                         }
                     }
@@ -335,16 +364,16 @@ fun ResponsePanel(
             }
             Spacer(modifier = Modifier.width(10.dp))
             IconButton(modifier = Modifier.size(38.dp),
-                    onClick = {
-                        if (!showFilterPanel) {
-                            showFind()
-                        } else {
-                            closeFind()
-                        }
-                    }) {
+                onClick = {
+                    if (!showFilterPanel) {
+                        showFind()
+                    } else {
+                        closeFind()
+                    }
+                }) {
                 Icon(
-                        imageVector = if (showFilterPanel) Icons.Default.Close else Icons.Default.FilterList,
-                        contentDescription = "Filter"
+                    imageVector = if (showFilterPanel) Icons.Default.Close else Icons.Default.FilterList,
+                    contentDescription = "Filter"
                 )
             }
 

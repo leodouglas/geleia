@@ -22,14 +22,17 @@ import kotlin.io.path.name
 
 object RequestService {
 
+    var basePath: File? = null
+
     private const val DISABLED_PARAM = "(disabled)"
 
     private fun loadFileCommands(command: String): MutableList<String> {
         val commands = mutableListOf<String>()
 
         val resourcePath = "curls.txt"
-        val file = File(resourcePath)
+        val file = File(basePath, resourcePath)
 
+        println("Loading file ${file.absoluteFile}")
         if (file.exists()) {
             var endLine = true
             file.forEachLine {
@@ -86,7 +89,7 @@ object RequestService {
 
     fun saveFileRequests(vars: Set<RequestVar>, requestList: RequestList) {
         val resourcePath = "curls.txt"
-        val file = File(resourcePath)
+        val file = File(basePath, resourcePath)
 
         file.writeText(buildString {
             vars.mapNotNull(RequestVar::command)

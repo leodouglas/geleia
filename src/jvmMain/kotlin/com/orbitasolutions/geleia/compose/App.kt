@@ -556,19 +556,18 @@ enum class TabRequestItems(val title: String) {
     DATA("Data")
 }
 
-fun annotatedStr(response: Response?): AnnotatedString? {
+fun annotatedStr(response: Response?, pg: String): AnnotatedString {
     return response?.let {
         if (it.statusCode != null) {
             val status = annotatedStr(it.statusLineString(), CodeLang.Http)
             val separator = annotatedStr(System.lineSeparator())
             val headers = annotatedStr(it.headerLineString())
-            val data = annotatedStr(it.data ?: "", CodeLang.Json)
 
-            status + separator + separator + headers + separator + separator + separator + data
+            status + separator + separator + headers
         } else {
-            annotatedStr(it.data ?: "", CodeLang.Json)
+            null
         }
-    }
+    } ?: annotatedStr(pg)
 }
 
 fun annotatedStr(code: String, codeLang: CodeLang = CodeLang.Header): AnnotatedString {

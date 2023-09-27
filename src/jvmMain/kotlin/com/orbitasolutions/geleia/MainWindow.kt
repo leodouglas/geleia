@@ -1,25 +1,34 @@
 package com.orbitasolutions.geleia
 
+import androidx.compose.runtime.*
+import androidx.compose.ui.awt.ComposeWindow
 import androidx.compose.ui.window.*
 import com.orbitasolutions.geleia.compose.app
 import com.orbitasolutions.geleia.extensions.MaterialAppearance
 import com.orbitasolutions.geleia.extensions.rememberPrefWindowState
-import com.orbitasolutions.geleia.extensions.savePrefWindowState
+import com.orbitasolutions.geleia.services.RequestService
 import java.awt.*
+import java.io.File
 import javax.imageio.ImageIO
 
-class Main {
+class MainWindow(val onClose: () -> Unit = {}, val windowInst: (ComposeWindow) -> Unit = {}) {
 
-    fun open() = application {
+    fun open(basePath: File? = null) = application(false) {
+        RequestService.basePath = basePath
+
         val rememberWindowState = rememberPrefWindowState("main")
+        var isOpen by remember { mutableStateOf(true) }
 
-        Window(
-            onCloseRequest = ::exitApplication,
-            state = rememberWindowState,
-            title = ""
-        ) {
-            MaterialAppearance {
-                app()
+        if (isOpen) {
+            Window(
+                onCloseRequest = { isOpen = false; onClose() },
+                state = rememberWindowState,
+                title = ""
+            ) {
+                MaterialAppearance {
+                    windowInst(window)
+                    app()
+                }
             }
         }
     }
@@ -42,5 +51,5 @@ class Main {
 }
 
 fun main() {
-    Main().open()
+    MainWindow().open()
 }
