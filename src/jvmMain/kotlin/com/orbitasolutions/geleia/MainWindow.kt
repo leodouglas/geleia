@@ -11,7 +11,7 @@ import java.awt.*
 import java.io.File
 import javax.imageio.ImageIO
 
-class MainWindow(val onClose: () -> Unit = {}, val windowInst: (ComposeWindow) -> Unit = {}) {
+class MainWindow(val onClose: () -> Unit = {  }, val windowInst: (ComposeWindow) -> Unit = {}, plugin: Boolean = false) {
 
     fun open(basePath: File? = null) = application(false) {
         RequestService.basePath = basePath
@@ -41,9 +41,11 @@ class MainWindow(val onClose: () -> Unit = {}, val windowInst: (ComposeWindow) -
         System.setProperty("jdk.httpclient.allowRestrictedHeaders", "connection,content-length,host")
 
         try {
-            val image = ImageIO.read(this.javaClass.getResource("/icons/icon.png"))
-            with(Taskbar.getTaskbar()) {
-                iconImage = image
+            if (!plugin) {
+                val image = ImageIO.read(this.javaClass.getResource("/icons/icon.png"))
+                with(Taskbar.getTaskbar()) {
+                    iconImage = image
+                }
             }
         } catch (_: Exception) {
         }
